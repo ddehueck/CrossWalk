@@ -1,12 +1,12 @@
-import jax
-import torch
+import torch.nn as nn
 from .sgns_loss import SGNSLoss
 
 
-class BaseDomain:
+class BaseDomain(nn.Module):
     """ Default values for all domains """
 
     def __init__(self, window_size, embed_len):
+        super().__init__()
         self.window_size = window_size
         self.dictionary = None
         self.global2local = None  # Dictionary that relates local domain id to global entity id
@@ -32,8 +32,7 @@ class BaseDomain:
     def load_embeds(self):
         """ Needs to be called after domain has a dictionary """
         # This initialization is important!
-        torch_embed = torch.nn.Embedding(len(self.dictionary), self.embed_len)
-        self.embeds = jax.numpy.array(torch_embed.weight.detach().numpy())
+        self.embeds = nn.Embedding(len(self.dictionary), self.embed_len)
 
     def set_sgns(self):
-        self.sgns = SGNSLoss(dictionary=self.dictionary)
+        self.sgns = SGNSLoss(dictionary=self.dictionary, embeds=self.embeds)

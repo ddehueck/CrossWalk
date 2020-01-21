@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 from torch.utils.data.dataset import Dataset
 
 
@@ -13,8 +13,13 @@ class CrossWalkDataset(Dataset):
             if d_len < index:
                 index -= d_len
 
-        example = self.domains[d_idx].examples[index]
-        return np.array(d_idx), np.array(example)
+        _global, _center, _context = self.domains[d_idx].examples[index]
+        return (
+            torch.tensor([d_idx]), 
+            torch.tensor([_global]), 
+            torch.tensor([_center]), 
+            torch.tensor(_context)
+        )
 
     def __len__(self):
         return sum(self.domain_lens)
