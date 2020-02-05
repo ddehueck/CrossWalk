@@ -1,12 +1,13 @@
-from functools import partial
+import torch as t
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader
 
-import jax.experimental.optimizers as optim
+from functools import partial
 import numpy as np
-from jax import jit, grad
 from tqdm import tqdm
 
 from crosswalk import PyPICrossWalk
-from dataloader import NumpyLoader
 from domains.dataset import CrossWalkDataset
 from domains.graph_domain import PyPIGraphDomain
 from domains.language_domain import PyPILanguageDomain
@@ -15,51 +16,58 @@ from domains.language_domain import PyPILanguageDomain
 class PyPITrainer:
 
     def __init__(self):
+        self.device = t.device("cuda:0" if t.cuda.is_available() else "cpu")
         self.crosswalk = PyPICrossWalk(
-            embed_len=32,
+            embed_len=128,
             domains=[
-                PyPIGraphDomain(5, 32, 'data/pypi_edges.csv', 10, 40),
-                PyPILanguageDomain(5, 32, 'data/pypi_lang.csv')
+                PyPIGraphDomain(5, 128, 'data/pypi_edges.csv', 10, 40),
+                PyPILanguageDomain(5, 128, 'data/pypi_lang.csv')
             ]
         )
         self.crosswalk.init_domains()
         self.dataset = CrossWalkDataset(self.crosswalk.domains)
-        self.dataloader = NumpyLoader(self.dataset, batch_size=1048, shuffle=True, num_workers=4)
-        # Set up optimizer - rmsprop seems to work the best
-        self.opt_init, self.opt_update, self.get_params = optim.adam(1e-3)
-
-    #@partial(jit, static_argnums=(0,))
-    def update(self, i, opt_state, domain_id, contexts):
-        params = self.get_params(opt_state)
-        loss_fn = self.crosswalk.domains[domain_id].sgns.forward
-        g = grad(loss_fn)(params[0], params[domain_id], contexts)
-        return self.opt_update(i, g, opt_state), params, g
+        self.dataloader = DataLoader(self.dataset, batch_size=2048, shuffle=True, num_workers=4)
+        self.optimizer = optim.Adam(self.crosswalk.parameters(), lr=1e-3)
 
     def train(self):
-        # Initialize optimizer state!
-        all_params = [self.crosswalk.entity_embeds] + [d.embeds for d in self.crosswalk.domains]
-        opt_state = self.opt_init(all_params)
-
+        print(f'Training on: {self.device}')
+        self.crosswalk.to(self.device)
+        
         for epoch in range(100):
             print(f'Beginning epoch: {epoch + 1}/100')
             for i, batch in enumerate(tqdm(self.dataloader)):
-                domain_ids, contexts = batch
-
-                batch_idxs_by_domain = [np.where(domain_ids == i)[0] for i in range(len(self.crosswalk.domains))]
+                # Unpack Data
+                domain_ids, global_ids, center_ids, contexts_ids = batch
+                # Send to device
+                global_ids = global_ids.to(self.device)
+                center_ids = center_ids.to(self.device)
+                contexts_ids = contexts_ids.to(self.device)
+                 # Remove accumulated gradients
+                self.optimizer.zero_grad()
+                # Split batch up by domain and update domain's weights
+                batch_idxs_by_domain = [t.where(domain_ids == i)[0] for i in range(len(self.crosswalk.domains))]
                 for d_idx, batch_idxs in enumerate(batch_idxs_by_domain):
                     if len(batch_idxs) == 0: continue
-                    
-                    domain_contexts = contexts[batch_idxs]
-                    opt_state, params, g = self.update(i + d_idx, opt_state, d_idx, domain_contexts)
+                    # Get domain's embeddings
+                    context_embeds = self.crosswalk.get_local_embeds(d_idx, contexts_ids[batch_idxs])
+                    center_embeds = self.crosswalk.get_local_embeds(d_idx, center_ids[batch_idxs])
+                    # Get global embeddings
+                    global_embeds = self.crosswalk.get_global_embeds(global_ids[batch_idxs])
+                    # Calculate loss
+                    loss = self.crosswalk.calculate_local_loss(d_idx, global_embeds, center_embeds, context_embeds)
+                    # Backprop but don't step!
+                    loss.backward()
+                # Update - outside of loss loop  so gradients don't influence eachother in one batch!
+                self.optimizer.step()
+                
+            self.log_step(epoch)
 
-            self.log_step(epoch, params, g)
-
-    def log_step(self, epoch, params, g):
-        print(f'EPOCH: {epoch} | GRAD MAGNITUDE: {np.sum(g)}')
+    def log_step(self, epoch):
+        print(f'EPOCH: {epoch}')
         # Log embeddings!
-        print('\nLearned embeddings:')
-        for word in self.dataset.queries:
-            print(f'word: {word} neighbors: {self.crosswalk.nearest_neighbors(word, self.dataset.dictionary, params)}')
+        #print('\nLearned embeddings:')
+        #for word in self.dataset.queries:
+        #    print(f'word: {word} neighbors: {self.crosswalk.nearest_neighbors(word, self.dataset.dictionary, params)}')
 
 
 if __name__ == '__main__':

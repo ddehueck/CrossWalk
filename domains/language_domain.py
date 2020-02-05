@@ -1,5 +1,4 @@
 import re
-import jax
 import torch
 from tqdm import tqdm
 import pandas as pd
@@ -34,8 +33,7 @@ class PyPILanguageDomain(BaseDomain):
         """ Needs to be called after domain has a dictionary """
         # This initialization is important!
         # Word + Document embeddings! - Doc embeds are appended to word embeds
-        torch_embed = torch.nn.Embedding(len(self.dictionary) + len(self.walks), self.embed_len)
-        self.embeds = jax.numpy.array(torch_embed.weight.detach().numpy())
+        self.embeds = torch.nn.Embedding(len(self.dictionary) + len(self.walks), self.embed_len)
 
     def tokenize_files(self, df_path):
         data = pd.read_csv(df_path, na_filter=False)['language'].values[:1000]

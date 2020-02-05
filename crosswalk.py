@@ -1,21 +1,18 @@
-import jax
-import torch
+import torch as t
+import torch.nn as nn
 import pandas as pd
-import numpy as onp
+import numpy as np
 
 
-class PyPICrossWalk:
+class PyPICrossWalk(nn.Module):
 
     def __init__(self, embed_len, domains):
-        self.domains = domains
+        super().__init__()
+        self.domains = nn.ModuleList(domains)
         self.embed_len = embed_len
-
         # self.id2name[0] --> pylineclip
         self.id2name = self.create_id2name('data/pypi_nodes.csv')
-
-        # This initialization is important!
-        torch_embed = torch.nn.Embedding(len(self.id2name), embed_len)
-        self.entity_embeds = jax.numpy.array(torch_embed.weight.detach().numpy())
+        self.entity_embeds = nn.Embedding(len(self.id2name), embed_len)
 
     def init_domains(self):
         print('Generating examples...')
@@ -33,6 +30,17 @@ class PyPICrossWalk:
         print('Generating globa2local dicts...')
         for domain in self.domains:
             domain.set_global2local(self.id2name)
+
+    def get_local_embeds(self, domain_id, idxs):
+        return self.domains[domain_id].embeds(idxs)
+
+    def get_global_embeds(self, idxs):
+        return self.entity_embeds(idxs)
+
+    def calculate_local_loss(self, domain_id, global_embeds, center_embeds, context_embeds):
+        # Average - to combine - try concatenation, summation, seperate?
+        avg_centers = t.mean(t.stack((center_embeds, global_embeds)), dim=0)
+        return self.domains[domain_id].sgns(avg_centers, context_embeds)
 
     @staticmethod
     def create_id2name(nodes_path):
@@ -52,8 +60,8 @@ class PyPICrossWalk:
 
         ranks = vectors.dot(query).squeeze()
         denom = query.T.dot(query).squeeze()
-        denom = denom * onp.sum(vectors ** 2, 1)
-        denom = onp.sqrt(denom)
+        denom = denom * np.sum(vectors ** 2, 1)
+        denom = np.sqrt(denom)
         ranks = ranks / denom
         mostSimilar = []
         [mostSimilar.append(idx) for idx in ranks.argsort()[::-1]]

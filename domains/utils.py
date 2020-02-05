@@ -16,9 +16,11 @@ class AliasMultinomial(object):
             It represents probabilities of different outcomes.
             There are K outcomes. Probabilities sum to one.
         """
+        self.device = t.device("cuda:0" if t.cuda.is_available() else "cpu")
+
         K = len(probs)
-        self.q = t.zeros(K)
-        self.J = t.LongTensor([0] * K)
+        self.q = t.zeros(K).to(self.device)
+        self.J = t.LongTensor([0] * K).to(self.device)
 
         # sort the data into the outcomes with probabilities
         # that are larger and smaller than 1/K
@@ -53,11 +55,11 @@ class AliasMultinomial(object):
         """Draw N samples from the distribution."""
 
         K = self.J.size(0)
-        r = t.LongTensor(np.random.randint(0, K, size=N))
+        r = t.LongTensor(np.random.randint(0, K, size=N)).to(self.device)
         q = self.q.index_select(0, r).clamp(0.0, 1.0)
         j = self.J.index_select(0, r)
         b = t.bernoulli(q)
         oq = r.mul(b.long())
         oj = j.mul((1 - b).long())
 
-        return (oq + oj).numpy()
+        return oq + oj
