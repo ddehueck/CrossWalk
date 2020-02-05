@@ -18,7 +18,7 @@ class PyPITrainer:
         self.crosswalk = PyPICrossWalk(
             embed_len=32,
             domains=[
-                PyPIGraphDomain(5, 32, 'data/pypi_edges.csv', 1, 40),
+                PyPIGraphDomain(5, 32, 'data/pypi_edges.csv', 10, 40),
                 PyPILanguageDomain(5, 32, 'data/pypi_lang.csv')
             ]
         )
