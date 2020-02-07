@@ -1,27 +1,25 @@
 import torch as t
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
 
-from functools import partial
-import numpy as np
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from crosswalk import PyPICrossWalk
 from domains.dataset import CrossWalkDataset
-from domains.graph_domain import PyPIGraphDomain
-from domains.language_domain import PyPILanguageDomain
+from domains.graph.domain import PyPIGraphDomain
+from domains.language.domain import PyPILanguageDomain
 
 
 class PyPITrainer:
 
-    def __init__(self):
+    def __init__(self, args):
         self.device = t.device("cuda:0" if t.cuda.is_available() else "cpu")
         self.crosswalk = PyPICrossWalk(
-            embed_len=128,
+            embed_len=args['embed_len'],
             domains=[
-                PyPIGraphDomain(5, 128, 'data/pypi_edges.csv', 10, 40),
-                PyPILanguageDomain(5, 128, 'data/pypi_lang.csv')
+                PyPIGraphDomain(args, 'data/pypi_edges.csv'),
+                PyPILanguageDomain(args, 'data/pypi_lang.csv')
             ]
         )
         self.crosswalk.init_domains()
@@ -32,7 +30,7 @@ class PyPITrainer:
     def train(self):
         print(f'Training on: {self.device}')
         self.crosswalk.to(self.device)
-        
+
         for epoch in range(100):
             print(f'Beginning epoch: {epoch + 1}/100')
             for i, batch in enumerate(tqdm(self.dataloader)):
@@ -74,11 +72,14 @@ class PyPITrainer:
             print(f'Node: {n} neighbors: {self.crosswalk.nearest_neighbors(n)}')
         print()
 
-        for q in self.crosswalk.domains[1].queries:
-            print(f'Word: {q} neighbors: {self.crosswalk.domains[1].nearest_neighbors(q)}')
-        print()
-
 
 if __name__ == '__main__':
-    trainer = PyPITrainer()
+    args = {
+        'walk_len': 40,
+        'n_walks': 10,
+        'window_size': 5,
+        'embed_len': 32
+    }
+
+    trainer = PyPITrainer(args)
     trainer.train()

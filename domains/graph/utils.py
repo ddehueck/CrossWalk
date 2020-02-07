@@ -1,33 +1,44 @@
 import h5py
-from tqdm import tqdm
+import os.path
+import numpy as np
 
+from tqdm import tqdm
 from gensim.corpora import Dictionary
 from gensim.utils import strided_windows
 
-from .graph_utils import load_pd_edgelist, build_random_walk_corpus
+from .graph import build_random_walk_corpus
 
 
-def create_examples(args, edgelist_path, save=True):
+def load_examples(args, edgelist_path, G):
+    # Unpack params
     n_walks, walk_len = args.get('n_walks'), args.get('walk_len')
     window_size = args.get('window_size')
 
-    G = load_pd_edgelist(edgelist_path)
+    # Filenames for examples to be saved to
+    param_str = f'{n_walks}_walks_{walk_len}_walk_len_{window_size}_ws'
+    example_pth = f'data/graph_examples_{param_str}.h5'
+    dict_pth = f'data/graph_dictionary_{param_str}.gensim'
+
+    if os.path.isfile(example_pth) and os.path.isfile(dict_pth):
+        print(f'Loading examples from: {example_pth}')
+        print(f'Loading dictionary from: {dict_pth}')
+        return example_pth, dict_pth
+
+    # Generate randomwalks
     dictionary, walks = generate_walks(G, n_walks, walk_len)
 
+    # Create Examples
     examples = []
-    for walk in tqdm(enumerate(walks), desc='Generating Examples:', total=len(walks)):
+    for walk in tqdm(walks, desc='Generating Examples:', total=len(walks)):
         windows = strided_windows(walk, window_size)
         for w in windows:
             center, context = w[0], w[1:]  # Add entity id as well
             examples.append([walk[0], center, context])
 
-    if save:
-        param_str = f'{n_walks}_walks_{walk_len}_walk_len_{window_size}_ws'
-        example_pth = save_examples(f'graph_examples_{param_str}.h5', examples)
-        dict_pth = save_dictionary(f'graph_dictionary_{param_str}', dictionary)
-        return example_pth, dict_pth
-
-    return examples, dictionary
+    # Save Examples!
+    save_examples(example_pth, examples)
+    save_dictionary(dict_pth, dictionary)
+    return example_pth, dict_pth
 
 
 def generate_walks(G, n_walks, walk_len):
@@ -39,21 +50,28 @@ def generate_walks(G, n_walks, walk_len):
 
 
 def save_examples(path, examples):
+    if os.path.isfile(path):
+        return path
+
+    examples = np.array(examples)
     hf = h5py.File(path, 'w')
     # Save globals, i.e. doc ids to their own group
     g1 = hf.create_group('globals')
-    g1.create_dataset('data', data=examples[:, 0])
+    g1.create_dataset('data', data=examples[:, 0].tolist())
     # Save centers to their own group
     g2 = hf.create_group('centers')
-    g2.create_dataset('data', data=examples[:, 1])
+    g2.create_dataset('data', data=examples[:, 1].tolist())
     # Save contexts to their own group
     g3 = hf.create_group('contexts')
-    g3.create_dataset('data', data=examples[:, 2:])
+    g3.create_dataset('data', data=examples[:, 2].tolist())
     # Cloase otherwise file gets messed up
     hf.close()
     return path
 
 
 def save_dictionary(path, dictionary):
+    if os.path.isfile(path):
+        return path
+
     dictionary.save(path)
     return path

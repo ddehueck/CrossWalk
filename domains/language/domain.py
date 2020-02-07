@@ -1,10 +1,11 @@
 import torch
+import pandas as pd
 from gensim.corpora import Dictionary
 
 from ..base_domain import BaseDomain
 from ..disk_dataset import DiskDataset
 
-from .utils import create_examples
+from .utils import load_examples
 
 
 class PyPILanguageDomain(BaseDomain):
@@ -12,11 +13,11 @@ class PyPILanguageDomain(BaseDomain):
     def __init__(self, args, df_path):
         BaseDomain.__init__(self, args)
         self.name = 'PyPI Language Domain'
-        self.queries = ['tensorflow', 'pytorch', 'nlp', 'performance', 'encryption']
 
-        examples_pth, dictionary_pth = create_examples(args, df_path, save=True)
+        examples_pth, dictionary_pth = load_examples(args, df_path)
         self.dataset = DiskDataset(args, examples_pth)
         self.dictionary = Dictionary().load(dictionary_pth)
+        self.num_docs = len(pd.read_csv(df_path, na_filter=False)['language'].values)
 
     def set_global2local(self, id2name):
         """ Document embeddings relate to global """
@@ -28,4 +29,4 @@ class PyPILanguageDomain(BaseDomain):
         """ Needs to be called after domain has a dictionary """
         # This initialization is important!
         # Word + Document embeddings! - Doc embeds are appended to word embeds
-        self.embeds = torch.nn.Embedding(len(self.dictionary) + len(self.walks), self.embed_len)
+        self.embeds = torch.nn.Embedding(len(self.dictionary) + self.num_docs, self.embed_len)

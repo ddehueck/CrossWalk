@@ -17,10 +17,6 @@ class PyPICrossWalk(nn.Module):
         self.entity_embeds = nn.Embedding(len(self.id2name), embed_len)
 
     def init_domains(self):
-        print('Generating examples...')
-        for domain in self.domains:
-            domain.load_examples()
-
         print('Creating domain-specific embeddings...')
         for domain in self.domains:
             domain.load_embeds()
