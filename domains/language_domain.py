@@ -36,7 +36,7 @@ class PyPILanguageDomain(BaseDomain):
         self.embeds = torch.nn.Embedding(len(self.dictionary) + len(self.walks), self.embed_len)
 
     def tokenize_files(self, df_path):
-        data = pd.read_csv(df_path, na_filter=False)['language'].values[:1000]
+        data = pd.read_csv(df_path, na_filter=False)['language'].values
         cleaned_docs = [self.tokenize_doc(f) for f in tqdm(data, desc='Tokenizing Docs')]
         # Now we have a Gensim Dictionary to work with
         self.dictionary = Dictionary(cleaned_docs)
@@ -55,3 +55,25 @@ class PyPILanguageDomain(BaseDomain):
         clean_doc = [re.sub('[^a-zA-Z0-9]', '', t) for t in clean_doc]
         # Remove any resulting empty indices
         return [t for t in clean_doc if len(t) > 0]
+
+    def nearest_neighbors(self, word):
+        """
+        Finds vector closest to word_idx vector
+        :param word_idx: Integer
+        :return: Integer corresponding to word vector in self.word_embeds
+        """
+        vectors = self.embeds.weight.data.detach().cpu().numpy()
+        index = self.dictionary.token2id[word]
+        query = vectors[index]
+
+        ranks = vectors.dot(query).squeeze()
+        denom = query.T.dot(query).squeeze()
+        denom = denom * np.sum(vectors ** 2, 1)
+        denom = np.sqrt(denom)
+        ranks = ranks / denom
+        mostSimilar = []
+        [mostSimilar.append(idx) for idx in ranks.argsort()[::-1]]
+        nearest_neighbors = mostSimilar[:8]
+        nearest_neighbors = [self.dictionary[comp] for comp in nearest_neighbors]
+
+        return nearest_neighbors
