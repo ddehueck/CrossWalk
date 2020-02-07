@@ -5,7 +5,7 @@ import pandas as pd
 from gensim.utils import strided_windows
 from gensim.corpora import Dictionary
 
-from .base_domain import BaseDomain
+from ..base_domain import BaseDomain
 
 
 class PyPILanguageDomain(BaseDomain):

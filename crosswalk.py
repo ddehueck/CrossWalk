@@ -71,4 +71,3 @@ class PyPICrossWalk(nn.Module):
         nearest_neighbors = [self.id2name[comp] for comp in nearest_neighbors]
 
         return nearest_neighbors
-

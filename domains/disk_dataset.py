@@ -3,30 +3,28 @@ import h5py
 from torch.utils.data.dataset import Dataset
 
 
-class CrossWalkDataset(Dataset):
+class DiskDataset(Dataset):
 
-    def __init__(self, domains):
-        self.domains = domains
-        self.domain_lens = [len(d.examples) for d in domains]
-        
+    def __init__(self, args, domain_idx, examples_pth):
+        self.domain_idx = domain_idx
+
         self.cache = []
-        self.cache_len = 100000
+        self.cache_len = args.get('cache_len', 100000)
 
-        self.examples_hf = h5py.File('all_examples.h5', 'r')
-
+        self.examples_hf = h5py.File('examples_pth', 'r')
+        self.num_examples = self.examples_hf['examples'].shape[0]
 
     def __getitem__(self, index):
-        for d_idx, d_len in enumerate(self.domain_lens):
-            if d_len < index:
-                index -= d_len
-
-        _global, _center, _context = self.domains[d_idx].examples[index]
+        _global = self.examples_hf['globals']['data'][index]
+        _center = self.examples_hf['centers']['context_data'][index]
+        _context = self.examples_hf['contexts']['context_data'][index]
+        
         return (
-            torch.tensor([d_idx]), 
-            torch.tensor([_global]), 
-            torch.tensor([_center]), 
+            torch.tensor([self.domain_idx]),
+            torch.tensor([_global]),
+            torch.tensor([_center]),
             torch.tensor(_context)
         )
 
     def __len__(self):
-        return sum(self.domain_lens)
+        return self.num_examples
