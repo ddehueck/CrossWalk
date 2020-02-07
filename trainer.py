@@ -38,12 +38,15 @@ class PyPITrainer:
             for i, batch in enumerate(tqdm(self.dataloader)):
                 # Unpack Data
                 domain_ids, global_ids, center_ids, contexts_ids = batch
+
                 # Send to device
                 global_ids = global_ids.to(self.device)
                 center_ids = center_ids.to(self.device)
                 contexts_ids = contexts_ids.to(self.device)
+
                  # Remove accumulated gradients
                 self.optimizer.zero_grad()
+
                 # Split batch up by domain and update domain's weights
                 batch_idxs_by_domain = [t.where(domain_ids == i)[0] for i in range(len(self.crosswalk.domains))]
                 for d_idx, batch_idxs in enumerate(batch_idxs_by_domain):
@@ -57,6 +60,7 @@ class PyPITrainer:
                     loss = self.crosswalk.calculate_local_loss(d_idx, global_embeds, center_embeds, context_embeds)
                     # Backprop but don't step!
                     loss.backward()
+
                 # Update - outside of loss loop  so gradients don't influence eachother in one batch!
                 self.optimizer.step()
                 
