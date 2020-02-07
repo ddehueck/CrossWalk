@@ -26,7 +26,7 @@ class PyPITrainer:
         )
         self.crosswalk.init_domains()
         self.dataset = CrossWalkDataset(self.crosswalk.domains)
-        self.dataloader = DataLoader(self.dataset, batch_size=2048, shuffle=True, num_workers=4)
+        self.dataloader = DataLoader(self.dataset, batch_size=2048, shuffle=True, num_workers=2)
         self.optimizer = optim.Adam(self.crosswalk.parameters(), lr=1e-3)
 
     def train(self):
@@ -67,11 +67,16 @@ class PyPITrainer:
             self.log_step(epoch)
 
     def log_step(self, epoch):
-        print(f'EPOCH: {epoch}')
+        print(f'EPOCH: {epoch} | GRAD: {t.sum(self.crosswalk.entity_embeds.weight.grad)}')
         # Log embeddings!
-        #print('\nLearned embeddings:')
-        #for word in self.dataset.queries:
-        #    print(f'word: {word} neighbors: {self.crosswalk.nearest_neighbors(word, self.dataset.dictionary, params)}')
+        print('\nLearned embeddings:')
+        for n in ['torch', 'tensorflow', 'flask', 'django', 'numpy']:
+            print(f'Node: {n} neighbors: {self.crosswalk.nearest_neighbors(n)}')
+        print()
+
+        for q in self.crosswalk.domains[1].queries:
+            print(f'Word: {q} neighbors: {self.crosswalk.domains[1].nearest_neighbors(q)}')
+        print()
 
 
 if __name__ == '__main__':

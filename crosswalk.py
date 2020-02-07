@@ -12,6 +12,8 @@ class PyPICrossWalk(nn.Module):
         self.embed_len = embed_len
         # self.id2name[0] --> pylineclip
         self.id2name = self.create_id2name('data/pypi_nodes.csv')
+        # pylineclip -->  0
+        self.name2id = {v: k for k, v in self.id2name.items()}
         self.entity_embeds = nn.Embedding(len(self.id2name), embed_len)
 
     def init_domains(self):
@@ -47,15 +49,15 @@ class PyPICrossWalk(nn.Module):
         nodes_names = pd.read_csv(nodes_path, na_filter=False)['nodes'].values
         return dict(zip(range(len(nodes_names)), nodes_names))
 
-    @staticmethod
-    def nearest_neighbors(entity, dictionary, vectors):
+    def nearest_neighbors(self, node):
         """
         Finds vector closest to word_idx vector
         :param word: String
         :param dictionary: Gensim dictionary object
         :return: Integer corresponding to word vector in self.word_embeds
         """
-        index = dictionary.token2id[entity]
+        index = self.name2id[node]
+        vectors = self.entity_embeds.weight.detach().cpu().numpy()
         query = vectors[index]
 
         ranks = vectors.dot(query).squeeze()
@@ -65,8 +67,8 @@ class PyPICrossWalk(nn.Module):
         ranks = ranks / denom
         mostSimilar = []
         [mostSimilar.append(idx) for idx in ranks.argsort()[::-1]]
-        nearest_neighbors = mostSimilar[:10]
-        nearest_neighbors = [dictionary[comp] for comp in nearest_neighbors]
+        nearest_neighbors = mostSimilar[:6]
+        nearest_neighbors = [self.id2name[comp] for comp in nearest_neighbors]
 
         return nearest_neighbors
 
