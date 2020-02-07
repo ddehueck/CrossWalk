@@ -5,19 +5,13 @@ from .sgns_loss import SGNSLoss
 class BaseDomain(nn.Module):
     """ Default values for all domains """
 
-    def __init__(self, window_size, embed_len):
+    def __init__(self, args):
         super().__init__()
-        self.window_size = window_size
-        self.dictionary = None
-        self.global2local = None  # Dictionary that relates local domain id to global entity id
-
-        self.walks = []
-        self.examples = []
-
-        self.queries = []
         self.name = 'Unnamed Domain'
-
-        self.embed_len = embed_len
+        self.dictionary = None
+        self.dataset = None
+        self.global2local = None  # Dictionary that relates local domain id to global entity id
+        self.embed_len = args.get('embed_len')
         self.embeds = None
         self.sgns = None
 

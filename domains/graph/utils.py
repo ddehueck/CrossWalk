@@ -7,7 +7,10 @@ from gensim.utils import strided_windows
 from .graph_utils import load_pd_edgelist, build_random_walk_corpus
 
 
-def create_examples(edgelist_path, n_walks, walk_len, window_size, save=True):
+def create_examples(args, edgelist_path, save=True):
+    n_walks, walk_len = args.get('n_walks'), args.get('walk_len')
+    window_size = args.get('window_size')
+
     G = load_pd_edgelist(edgelist_path)
     dictionary, walks = generate_walks(G, n_walks, walk_len)
 
@@ -48,7 +51,9 @@ def save_examples(path, examples):
     g3.create_dataset('data', data=examples[:, 2:])
     # Cloase otherwise file gets messed up
     hf.close()
+    return path
 
 
 def save_dictionary(path, dictionary):
     dictionary.save(path)
+    return path
