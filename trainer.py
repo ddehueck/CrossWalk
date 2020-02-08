@@ -33,6 +33,7 @@ class PyPITrainer:
 
         for epoch in range(100):
             print(f'Beginning epoch: {epoch + 1}/100')
+            running_loss = 0.0
             for i, batch in enumerate(tqdm(self.dataloader)):
                 # Unpack Data
                 domain_ids, global_ids, center_ids, contexts_ids = batch
@@ -61,11 +62,11 @@ class PyPITrainer:
 
                 # Update - outside of loss loop  so gradients don't influence eachother in one batch!
                 self.optimizer.step()
-                del context_embeds, center_embeds, global_embeds, batch_idxs_by_domain, batch
-                
+                running_loss += loss.item()
+
             self.log_step(epoch)
             if (epoch + 1) % 10 == 0:
-                self.crosswalk.sa
+                self.save_checkpoint(epoch, running_loss)
 
     def log_step(self, epoch):
         print(f'EPOCH: {epoch} | GRAD: {t.sum(self.crosswalk.entity_embeds.weight.grad)}')
@@ -75,7 +76,7 @@ class PyPITrainer:
             print(f'Node: {n} neighbors: {self.crosswalk.nearest_neighbors(n)}')
         print()
 
-    def save_checkpoint(self, epoch):
+    def save_checkpoint(self, epoch, loss):
         # To visualize embeddings
         self.writer.add_embedding(
             self.crosswalk.entity_embeds.weight,
@@ -86,11 +87,11 @@ class PyPITrainer:
         # Save checkpoint
         print(f'Beginning to save checkpoint')
         t.save({
-            'epoch': epoch + 1,
-            'model_state_dict': self.model.state_dict(),
-            'optimizer_state_dict': self.optim.state_dict(),
+            'epoch': epoch,
+            'model_state_dict': self.crosswalk.state_dict(),
+            'optimizer_state_dict': self.optimizer.state_dict(),
             'loss': loss,
-        }, f'epoch_{epoch}_ckpt.pth')
+        }, f'checkpoints/epoch_{epoch}_ckpt.pth')
         print(f'Finished saving checkpoint')
 
 
