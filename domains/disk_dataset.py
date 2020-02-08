@@ -1,36 +1,32 @@
 import torch
 import h5py
+import numpy as np
 from torch.utils.data.dataset import Dataset
 
 
 class DiskDataset(Dataset):
 
     def __init__(self, args, examples_pth):
-        self.cache = []
-        self.cache_len = args.get('cache_len', 100000)
-
         self.examples_pth = examples_pth
+        
         with h5py.File(examples_pth, 'r') as hf:
             self.num_examples = hf['globals']['data'].shape[0]
             print(f'This dataset has: {self.num_examples} examples.')
 
-        self.init_cache(args.get('max_cache_prop', .5))
+        self.init_cache(args.get('max_cache_prop', 1))
 
     def __getitem__(self, index):
         # Check if index is already in cache
+        _global, _center, _context = self.cache[index]
         if index < self.max_cache_size:
             _global, _center, _context = self.cache[index]
         else:
-            hf = h5py.File(self.examples_pth, 'r')
-            _global = hf['globals']['data'][index]
-            _center = hf['centers']['data'][index]
-            _context = hf['contexts']['data'][index]
+            with h5py.File(self.examples_pth, 'r') as hf:
+                _global = hf['globals']['data'][index]
+                _center = hf['centers']['data'][index]
+                _context = hf['contexts']['data'][index]
 
-        return (
-            torch.tensor([_global]),
-            torch.tensor([_center]),
-            torch.tensor(_context)
-        )
+        return _global, _center, _context
 
     def init_cache(self, max_cache_prop):
         """
@@ -48,6 +44,8 @@ class DiskDataset(Dataset):
                 hf['centers']['data'][:self.max_cache_size],
                 hf['contexts']['data'][:self.max_cache_size]
             ))
+        
+        self.cache = np.array(self.cache)
 
     def __len__(self):
         return self.num_examples

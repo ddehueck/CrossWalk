@@ -1,6 +1,7 @@
 .idea/
 data/
 .vscode/
+checkpoints/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

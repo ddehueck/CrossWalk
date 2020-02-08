@@ -24,7 +24,7 @@ class PyPITrainer:
         )
         self.crosswalk.init_domains()
         self.dataset = CrossWalkDataset(self.crosswalk.domains)
-        self.dataloader = DataLoader(self.dataset, batch_size=2048, shuffle=True, num_workers=2)
+        self.dataloader = DataLoader(self.dataset, batch_size=4096, shuffle=True, num_workers=0)
         self.optimizer = optim.Adam(self.crosswalk.parameters(), lr=1e-3)
 
     def train(self):
@@ -42,7 +42,7 @@ class PyPITrainer:
                 center_ids = center_ids.to(self.device)
                 contexts_ids = contexts_ids.to(self.device)
 
-                 # Remove accumulated gradients
+                # Remove accumulated gradients
                 self.optimizer.zero_grad()
 
                 # Split batch up by domain and update domain's weights
@@ -61,8 +61,11 @@ class PyPITrainer:
 
                 # Update - outside of loss loop  so gradients don't influence eachother in one batch!
                 self.optimizer.step()
+                del context_embeds, center_embeds, global_embeds, batch_idxs_by_domain, batch
                 
             self.log_step(epoch)
+            if (epoch + 1) % 10 == 0:
+                self.crosswalk.sa
 
     def log_step(self, epoch):
         print(f'EPOCH: {epoch} | GRAD: {t.sum(self.crosswalk.entity_embeds.weight.grad)}')
@@ -71,6 +74,24 @@ class PyPITrainer:
         for n in ['torch', 'tensorflow', 'flask', 'django', 'numpy']:
             print(f'Node: {n} neighbors: {self.crosswalk.nearest_neighbors(n)}')
         print()
+
+    def save_checkpoint(self, epoch):
+        # To visualize embeddings
+        self.writer.add_embedding(
+            self.crosswalk.entity_embeds.weight,
+            global_step=epoch,
+            tag=f'epoch_{epoch}',
+        )
+
+        # Save checkpoint
+        print(f'Beginning to save checkpoint')
+        t.save({
+            'epoch': epoch + 1,
+            'model_state_dict': self.model.state_dict(),
+            'optimizer_state_dict': self.optim.state_dict(),
+            'loss': loss,
+        }, f'epoch_{epoch}_ckpt.pth')
+        print(f'Finished saving checkpoint')
 
 
 if __name__ == '__main__':
@@ -82,4 +103,4 @@ if __name__ == '__main__':
     }
 
     trainer = PyPITrainer(args)
-    trainer.train()
+    #trainer.train()
