@@ -1,9 +1,9 @@
 import torch as t
-import torch.nn as nn
 import torch.optim as optim
 
-from torch.utils.data import DataLoader
 from tqdm import tqdm
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from crosswalk import PyPICrossWalk
 from domains.dataset import CrossWalkDataset
@@ -15,6 +15,8 @@ class PyPITrainer:
 
     def __init__(self, args):
         self.device = t.device("cuda:0" if t.cuda.is_available() else "cpu")
+        self.writer = SummaryWriter(log_dir='./experiments/', flush_secs=3)
+
         self.crosswalk = PyPICrossWalk(
             embed_len=args['embed_len'],
             domains=[
@@ -22,6 +24,7 @@ class PyPITrainer:
                 PyPILanguageDomain(args, 'data/pypi_lang.csv')
             ]
         )
+
         self.crosswalk.init_domains()
         self.dataset = CrossWalkDataset(self.crosswalk.domains)
         self.dataloader = DataLoader(self.dataset, batch_size=4096, shuffle=True, num_workers=0)
@@ -31,7 +34,7 @@ class PyPITrainer:
         print(f'Training on: {self.device}')
         self.crosswalk.to(self.device)
 
-        for epoch in range(100):
+        for epoch in range(50):
             print(f'Beginning epoch: {epoch + 1}/100')
             running_loss = 0.0
             for i, batch in enumerate(tqdm(self.dataloader)):
@@ -66,7 +69,7 @@ class PyPITrainer:
 
             self.log_step(epoch)
             if (epoch + 1) % 10 == 0:
-                self.save_checkpoint(epoch, running_loss)
+                self.save_checkpoint(epoch, running_loss/len(self.dataloader))
 
     def log_step(self, epoch):
         print(f'EPOCH: {epoch} | GRAD: {t.sum(self.crosswalk.entity_embeds.weight.grad)}')
@@ -104,4 +107,4 @@ if __name__ == '__main__':
     }
 
     trainer = PyPITrainer(args)
-    #trainer.train()
+    trainer.train()
