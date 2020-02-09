@@ -1,4 +1,3 @@
-import torch
 import h5py
 import numpy as np
 from torch.utils.data.dataset import Dataset
@@ -17,7 +16,6 @@ class DiskDataset(Dataset):
 
     def __getitem__(self, index):
         # Check if index is already in cache
-        _global, _center, _context = self.cache[index]
         if index < self.max_cache_size:
             _global, _center, _context = self.cache[index]
         else:

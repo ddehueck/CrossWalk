@@ -35,7 +35,7 @@ class PyPITrainer:
         self.crosswalk.to(self.device)
 
         for epoch in range(50):
-            print(f'Beginning epoch: {epoch + 1}/100')
+            print(f'Beginning epoch: {epoch + 1}/50')
             running_loss = 0.0
             for i, batch in enumerate(tqdm(self.dataloader)):
                 # Unpack Data
