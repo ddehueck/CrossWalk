@@ -17,17 +17,10 @@ class PyPICrossWalk(nn.Module):
         self.entity_embeds = nn.Embedding(len(self.id2name), embed_len)
 
     def init_domains(self):
-        print('Creating domain-specific embeddings...')
         for domain in self.domains:
+            print(f'Initializing domain: {domain.name}...')
             domain.load_embeds()
-
-        print('Creating skigram losses...')
-        for domain in self.domains:
             domain.set_sgns()
-
-        print('Generating globa2local dicts...')
-        for domain in self.domains:
-            domain.set_global2local(self.id2name)
 
     def get_local_embeds(self, domain_id, idxs):
         return self.domains[domain_id].embeds(idxs)
@@ -36,9 +29,10 @@ class PyPICrossWalk(nn.Module):
         return self.entity_embeds(idxs)
 
     def calculate_local_loss(self, domain_id, global_embeds, center_embeds, context_embeds):
+        # TODO: do averaging when also learning local embeddings
         # Average - to combine - try concatenation, summation, seperate?
-        avg_centers = t.mean(t.stack((center_embeds, global_embeds)), dim=0)
-        return self.domains[domain_id].sgns(avg_centers, context_embeds)
+        #avg_centers = t.mean(t.stack((center_embeds, global_embeds)), dim=0)
+        return self.domains[domain_id].sgns(global_embeds, context_embeds)
 
     @staticmethod
     def create_id2name(nodes_path):

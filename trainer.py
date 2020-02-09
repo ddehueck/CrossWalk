@@ -20,14 +20,14 @@ class PyPITrainer:
         self.crosswalk = PyPICrossWalk(
             embed_len=args['embed_len'],
             domains=[
-                PyPIGraphDomain(args, 'data/pypi_edges.csv'),
+                #PyPIGraphDomain(args, 'data/pypi_edges.csv'),
                 PyPILanguageDomain(args, 'data/pypi_lang.csv')
             ]
         )
 
         self.crosswalk.init_domains()
         self.dataset = CrossWalkDataset(self.crosswalk.domains)
-        self.dataloader = DataLoader(self.dataset, batch_size=4096, shuffle=True, num_workers=0)
+        self.dataloader = DataLoader(self.dataset, batch_size=10000, shuffle=True, num_workers=0)
         self.optimizer = optim.Adam(self.crosswalk.parameters(), lr=1e-3)
 
     def train(self):
@@ -101,7 +101,7 @@ class PyPITrainer:
 if __name__ == '__main__':
     args = {
         'walk_len': 40,
-        'n_walks': 10,
+        'n_walks': 80,
         'window_size': 5,
         'embed_len': 32
     }
