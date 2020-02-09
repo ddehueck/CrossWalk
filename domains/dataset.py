@@ -14,12 +14,7 @@ class CrossWalkDataset(Dataset):
                 index -= d_len
 
         _global, _center, _context = self.domains[d_idx].dataset[index]
-        return (
-            torch.tensor([d_idx]),
-            torch.tensor([_global]),
-            torch.tensor([_center]),
-            torch.tensor(_context)
-        )
+        return d_idx, _global, _center, _context
 
     def __len__(self):
         return sum(self.domain_lens)

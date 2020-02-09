@@ -27,8 +27,12 @@ class PyPITrainer:
 
         self.crosswalk.init_domains()
         self.dataset = CrossWalkDataset(self.crosswalk.domains)
-        self.dataloader = DataLoader(self.dataset, batch_size=10000, shuffle=True, num_workers=0)
+        self.dataloader = DataLoader(self.dataset, batch_size=8192, shuffle=True, num_workers=2)
         self.optimizer = optim.Adam(self.crosswalk.parameters(), lr=1e-3)
+
+        #print('Just going over the data...')
+        #for b in tqdm(self.dataloader):
+        #    continue
 
     def train(self):
         print(f'Training on: {self.device}')
