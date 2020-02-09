@@ -67,9 +67,9 @@ class PyPITrainer:
                 self.optimizer.step()
                 running_loss += loss.item()
 
-            self.log_step(epoch)
+            self.log_step(epoch + 1)
             if (epoch + 1) % 10 == 0:
-                self.save_checkpoint(epoch, running_loss/len(self.dataloader))
+                self.save_checkpoint(epoch + 1, running_loss/len(self.dataloader))
 
     def log_step(self, epoch):
         print(f'EPOCH: {epoch} | GRAD: {t.sum(self.crosswalk.entity_embeds.weight.grad)}')
@@ -103,7 +103,7 @@ if __name__ == '__main__':
         'walk_len': 40,
         'n_walks': 80,
         'window_size': 5,
-        'embed_len': 32
+        'embed_len': 128
     }
 
     trainer = PyPITrainer(args)
