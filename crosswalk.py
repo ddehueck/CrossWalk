@@ -31,7 +31,7 @@ class PyPICrossWalk(nn.Module):
     def calculate_local_loss(self, domain_id, global_embeds, center_embeds, context_embeds):
         # TODO: do averaging when also learning local embeddings
         # Average - to combine - try concatenation, summation, seperate?
-        #avg_centers = t.mean(t.stack((center_embeds, global_embeds)), dim=0)
+        avg_centers = t.mean(t.stack((center_embeds, global_embeds)), dim=0)
         return self.domains[domain_id].sgns(global_embeds, context_embeds)
 
     @staticmethod

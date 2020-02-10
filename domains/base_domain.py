@@ -17,7 +17,7 @@ class BaseDomain(nn.Module):
     def load_embeds(self):
         """ Needs to be called after domain has a dictionary """
         self.embeds = nn.Embedding(len(self.dictionary), self.embed_len)
-        self.embeds.weight.requires_grad = False  # TODO: Make this optional
+        #self.embeds.weight.requires_grad = False  # TODO: Make this optional
 
     def set_sgns(self):
         self.sgns = SGNSLoss(dictionary=self.dictionary, embeds=self.embeds)

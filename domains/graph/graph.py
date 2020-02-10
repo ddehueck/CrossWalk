@@ -125,7 +125,6 @@ def build_random_walk_corpus(G, num_walks, walk_length, alpha=0, rand=random.Ran
 def load_pd_edgelist(file_, undirected=True):
     """ Reads from a pd dataframe saved to a CSV as an edgelist """
     G = Graph()
-    t = 0
     with open(file_) as f:
         f.readline()  # skip the first line - header
         for l in f:
@@ -135,10 +134,6 @@ def load_pd_edgelist(file_, undirected=True):
             G[x].append(y)
             if undirected:
                 G[y].append(x)
-
-            t += 1
-            if t > 1000:
-                break
 
     G.make_consistent()
     return G

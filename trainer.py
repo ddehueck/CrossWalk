@@ -15,24 +15,27 @@ class PyPITrainer:
 
     def __init__(self, args):
         self.device = t.device("cuda:0" if t.cuda.is_available() else "cpu")
-        self.writer = SummaryWriter(log_dir='./experiments/', flush_secs=3)
+        self.writer = SummaryWriter(log_dir='./experiments/multi', flush_secs=3)
 
         self.crosswalk = PyPICrossWalk(
             embed_len=args['embed_len'],
             domains=[
-                #PyPIGraphDomain(args, 'data/pypi_edges.csv'),
+                PyPIGraphDomain(args, 'data/pypi_edges.csv'),
                 PyPILanguageDomain(args, 'data/pypi_lang.csv')
             ]
         )
 
         self.crosswalk.init_domains()
         self.dataset = CrossWalkDataset(self.crosswalk.domains)
-        self.dataloader = DataLoader(self.dataset, batch_size=8192, shuffle=True, num_workers=2)
+        self.dataloader = DataLoader(self.dataset, batch_size=4096, shuffle=True, num_workers=0)
         self.optimizer = optim.Adam(self.crosswalk.parameters(), lr=1e-3)
 
-        #print('Just going over the data...')
-        #for b in tqdm(self.dataloader):
-        #    continue
+        # Load model from file
+        ckpt_path = None#'./checkpoints/dwlk_epoch_50_ckpt.pth'
+        if ckpt_path is not None:
+            self.ckpt = t.load(ckpt_path)
+            self.crosswalk.load_state_dict(self.ckpt['model_state_dict'])
+            #self.optimizer.load_state_dict(self.ckpt['optimizer_state_dict'])
 
     def train(self):
         print(f'Training on: {self.device}')
@@ -87,6 +90,7 @@ class PyPITrainer:
         # To visualize embeddings
         self.writer.add_embedding(
             self.crosswalk.entity_embeds.weight,
+            metadata=list(self.crosswalk.id2name.values()),
             global_step=epoch,
             tag=f'epoch_{epoch}',
         )
@@ -98,14 +102,14 @@ class PyPITrainer:
             'model_state_dict': self.crosswalk.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'loss': loss,
-        }, f'checkpoints/epoch_{epoch}_ckpt.pth')
+        }, f'checkpoints/multi_epoch_{epoch}_ckpt.pth')
         print(f'Finished saving checkpoint')
 
 
 if __name__ == '__main__':
     args = {
         'walk_len': 40,
-        'n_walks': 80,
+        'n_walks': 10,
         'window_size': 5,
         'embed_len': 128
     }
