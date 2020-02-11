@@ -17,3 +17,9 @@ class PyPILanguageDomain(BaseDomain):
         examples_pth, dictionary_pth = load_examples(args, df_path)
         self.dataset = DiskDataset(args, examples_pth)
         self.dictionary = Dictionary().load(dictionary_pth)
+
+    def set_local2global(self, id2name):
+        """ Document embeddings relate to global """
+        self.local2global = {}
+        for id in id2name.keys():
+            self.local2global[id] = id

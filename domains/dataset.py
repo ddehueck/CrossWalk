@@ -16,6 +16,9 @@ class CrossWalkDataset(Dataset):
                 break
 
         _global, _center, _context = self.domains[d_idx].dataset[index]
+        # Convert global (which is stored as local ids) to truly global ids
+        #_global = self.domains[d_idx].local2global[_global] # TODO: Is this even needed?
+
         return d_idx, _global, _center, _context
 
     def __len__(self):

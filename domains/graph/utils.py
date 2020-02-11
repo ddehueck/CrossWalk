@@ -33,7 +33,12 @@ def load_examples(args, edgelist_path, G):
         windows = strided_windows(walk, window_size)
         for w in windows:
             center, context = w[0], w[1:]  # Add entity id as well
-            examples.append([walk[0], center, context])
+             # convert to global entity ids!
+            _global = int(dictionary[walk[0]])
+            _center = int(dictionary[center])
+            _context = np.array([int(dictionary[c]) for c in context])
+            # save example
+            examples.append([_global, _center, _context])
 
     # Save Examples!
     save_examples(example_pth, examples)

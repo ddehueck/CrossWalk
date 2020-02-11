@@ -12,7 +12,14 @@ class PyPIGraphDomain(BaseDomain):
         super().__init__(args)
         self.name = 'PyPI Graph Domain'
         self.G = load_pd_edgelist(edgelist_path)
+        self.is_local_global = True
 
         examples_pth, dictionary_pth = load_examples(args, edgelist_path, self.G)
         self.dataset = DiskDataset(args, examples_pth)
         self.dictionary = Dictionary().load(dictionary_pth)
+
+    def set_local2global(self, id2name):
+        """ Node embeddings relate to global embeddings"""
+        self.local2global = {}
+        for node_id in self.G.nodes():
+            self.local2global[self.dictionary.token2id[str(node_id)]] = int(node_id)

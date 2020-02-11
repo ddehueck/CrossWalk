@@ -44,7 +44,7 @@ class PyPITrainer:
         for epoch in range(50):
             print(f'Beginning epoch: {epoch + 1}/50')
             running_loss = 0.0
-            for i, batch in enumerate(tqdm(self.dataloader)):
+            for batch in tqdm(self.dataloader):
                 # Unpack Data
                 domain_ids, global_ids, center_ids, contexts_ids = batch
 
@@ -57,7 +57,7 @@ class PyPITrainer:
                 self.optimizer.zero_grad()
 
                 # Split batch up by domain and update domain's weights
-                batch_idxs_by_domain = [t.where(domain_ids == i)[0] for i in range(len(self.crosswalk.domains))]
+                batch_idxs_by_domain = [t.where(domain_ids == k)[0] for k in range(len(self.crosswalk.domains))]
                 for d_idx, batch_idxs in enumerate(batch_idxs_by_domain):
                     if len(batch_idxs) == 0: continue
                     # Get domain's embeddings
@@ -74,12 +74,12 @@ class PyPITrainer:
                 self.optimizer.step()
                 running_loss += loss.item()
 
-            self.log_step(epoch + 1)
-            if (epoch + 1) % 10 == 0:
+            self.log_step(epoch + 1, running_loss/len(self.dataloader))
+            if (epoch + 1) % 5 == 0:
                 self.save_checkpoint(epoch + 1, running_loss/len(self.dataloader))
 
-    def log_step(self, epoch):
-        print(f'EPOCH: {epoch} | GRAD: {t.sum(self.crosswalk.entity_embeds.weight.grad)}')
+    def log_step(self, epoch, loss):
+        print(f'EPOCH: {epoch} | GRAD: {round(t.sum(self.crosswalk.entity_embeds.weight.grad).item(), 5)} | LOSS: {round(loss, 5)}')
         # Log embeddings!
         print('\nLearned embeddings:')
         for n in ['torch', 'tensorflow', 'flask', 'django', 'numpy']:

@@ -128,7 +128,7 @@ def load_pd_edgelist(file_, undirected=True):
     with open(file_) as f:
         f.readline()  # skip the first line - header
         for l in f:
-            x, y = l.split(',')[1:]
+            i, x, y = l.strip().split(',')
             x = int(x)
             y = int(y)
             G[x].append(y)

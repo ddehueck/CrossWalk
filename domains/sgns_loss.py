@@ -13,7 +13,7 @@ class SGNSLoss(nn.Module):
         super().__init__()
         self.criterion = nn.BCEWithLogitsLoss()
         self.vocab_len = len(dictionary)
-        self.embeds = embeds
+        self.embeds = embeds  # Should this be here? - does it get updated through training?
         # Helpful values for unigram distribution generation
         # Should use cfs instead but: https://github.com/RaRe-Technologies/gensim/issues/2574
         self.transformed_freq_vec = torch.tensor(
