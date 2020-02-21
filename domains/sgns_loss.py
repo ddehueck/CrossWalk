@@ -7,7 +7,7 @@ from domains.utils import AliasMultinomial
 
 class SGNSLoss(nn.Module):
     BETA = 0.75  # exponent to adjust sampling frequency
-    NUM_SAMPLES = 2
+    NUM_SAMPLES = 5 # TODO: Make argument
 
     def __init__(self, dictionary, embeds):
         super().__init__()

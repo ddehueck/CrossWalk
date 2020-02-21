@@ -14,8 +14,9 @@ from domains.language.domain import PyPILanguageDomain
 class PyPITrainer:
 
     def __init__(self, args):
+        self.args = args
         self.device = t.device("cuda:0" if t.cuda.is_available() else "cpu")
-        self.writer = SummaryWriter(log_dir='./experiments/multi', flush_secs=3)
+        self.writer = SummaryWriter(log_dir=f'./experiments/{args["exp_name"]}', flush_secs=3)
 
         self.crosswalk = PyPICrossWalk(
             embed_len=args['embed_len'],
@@ -102,7 +103,7 @@ class PyPITrainer:
             'model_state_dict': self.crosswalk.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'loss': loss,
-        }, f'checkpoints/multi_epoch_{epoch}_ckpt.pth')
+        }, f'checkpoints/{self.args["exp_name"]}_epoch_{epoch}_ckpt.pth')
         print(f'Finished saving checkpoint')
 
 
@@ -111,7 +112,8 @@ if __name__ == '__main__':
         'walk_len': 40,
         'n_walks': 10,
         'window_size': 5,
-        'embed_len': 128
+        'embed_len': 128,
+        'exp_name': 'multi_5_neg'
     }
 
     trainer = PyPITrainer(args)
